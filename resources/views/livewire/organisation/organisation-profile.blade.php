@@ -589,8 +589,8 @@
                 // If the image load is complete, directly init, or onload wait
                 const setup = () => {
                     this.cropper = new Cropper(img, {
-                        aspectRatio: 1,       // use NaN for Free size — width/height freely resize
-                        viewMode: 1,            // Use 0 for Crop box image boundary exceed කරන්නත් පුළුවන්
+                        aspectRatio: 600 / 240,       // use NaN for Free size — width/height freely resize
+                        viewMode: 1,            // Use 0 for Crop box image boundary can also be exceeded
                         dragMode: 'move',
                         autoCropArea: 1,        // Initial crop box — maximum size
                         minCropBoxWidth: 50,
@@ -630,10 +630,10 @@
                 this.isApplying = true;
 
                 try {
-                    // User crop කළ actual dimensions get කරනවා
+                    // Gets the actual dimensions cropped by the user
                     const cropData = this.cropper.getData(true); // true = rounded px values
                     const canvas = this.cropper.getCroppedCanvas({
-                        width: 240,
+                        width: 600,
                         height: 240,
                         maxWidth: 4096,       // Too large image limit
                         maxHeight: 4096,

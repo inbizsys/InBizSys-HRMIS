@@ -22,12 +22,14 @@ Route::view('profile', 'profile')
 // Add your routes here
 
 
-Route::prefix('org-settings')->name('settings.')->group(function () {
-    Route::get('/organisation', OrganisationProfile::class)->name('organisation');
-    Route::get('/work-locations', WorkLocation::class)->name('work-locations');
-    Route::get('/departments', Department::class)->name('departments');
-    Route::get('/designations', Designation::class)->name('designations');
-});
+Route::middleware(['auth', 'verified'])->group(function () {
 
+    Route::prefix('org-settings')->name('settings.')->group(function () {
+        Route::get('/organisation', OrganisationProfile::class)->name('organisation');
+        Route::get('/work-locations', WorkLocation::class)->name('work-locations');
+        Route::get('/departments', Department::class)->name('departments');
+        Route::get('/designations', Designation::class)->name('designations');
+    });
+});
 
 require __DIR__ . '/auth.php';

@@ -30,6 +30,16 @@ class Department extends Component
      */
     protected $paginationTheme = 'tailwind';
 
+    public function mount(): void
+    {
+        activity()
+            ->causedBy(auth()->user())
+            ->tap(function ($activity) {
+                $activity->ip_address = request()->ip();
+                $activity->user_agent = request()->userAgent();
+            })
+            ->log('Visited Department Page');
+    }
     protected function rules(): array
     {
         $orgId = Organisation::first(['id'])?->id;
