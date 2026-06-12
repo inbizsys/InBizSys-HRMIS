@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Bank extends Model
 {
@@ -23,4 +24,9 @@ class Bank extends Model
         'bank_name',
         'is_active',
     ];
+
+    public function branches(): HasMany
+    {
+        return $this->hasMany(BankBranch::class);
+    }
 }
