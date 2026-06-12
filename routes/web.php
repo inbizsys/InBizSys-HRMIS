@@ -56,6 +56,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // /payroll/branches -> route('payroll.branches')
         Route::get('/branches', BranchManagement::class)->name('branches');
     });
+
+});
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Organisation Settings Routes
