@@ -90,8 +90,8 @@
 
         {{-- Add / Edit Modal --}}
         @if ($showModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-                wire:keydown.escape="closeModal">
+            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50"
+                wire:keydown.escape="closeModal" style="padding-left: 256px;">
                 <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
 
                     {{-- Modal Header --}}
@@ -230,7 +230,7 @@
 
         {{-- Delete Confirm Modal --}}
         @if ($confirmDeleteId)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
                 <div class="bg-white rounded-xl shadow-2xl max-w-sm mx-4 p-6">
                     <h3 class="text-base font-semibold text-gray-800 mb-2">Delete Work Location?</h3>
                     <p class="text-sm text-gray-500 mb-5">This action cannot be undone. Are you sure?</p>
@@ -239,7 +239,7 @@
                             class="border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                             Cancel
                         </button>
-                        <button type="button" wire:click="delete"
+                        <button type="button" wire:click="delete" wire:loading.attr="disabled"
                             class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
                             Delete
                         </button>

@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Department as DepartmentModel;
 use App\Models\Organisation;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
 class Department extends Component
@@ -99,10 +100,22 @@ class Department extends Component
             'description'     => $this->description,
         ];
 
-        if ($this->editingId) {
-            DepartmentModel::findOrFail($this->editingId)->update($data);
-        } else {
-            DepartmentModel::create($data);
+        try {
+            DB::transaction(function () use ($data) {
+
+                if ($this->editingId) {
+                    DepartmentModel::findOrFail($this->editingId)->update($data);
+                    $message = 'Department updated successfully.';
+                } else {
+                    DepartmentModel::create($data);
+                    $message = 'Department added successfully.';
+                }
+                 $this->dispatch('notify', type: 'success', message: $message);
+            });
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: 'Something went wrong! Department could not be saved.');
+            \Log::error('Department save error: ' . $e->getMessage());
+            return;
         }
 
         $this->closeModal();
@@ -116,8 +129,20 @@ class Department extends Component
     public function delete(): void
     {
         if ($this->confirmDeleteId) {
-            DepartmentModel::findOrFail($this->confirmDeleteId)->delete();
-            $this->confirmDeleteId = null;
+            $departmentId = $this->confirmDeleteId; // save the ID before resetting it for UI purposes
+
+            try {
+                DB::transaction(function () use ($departmentId) {
+                    DepartmentModel::findOrFail($departmentId)->delete();
+                    $this->dispatch('notify', type: 'success', message: 'Department deleted successfully.');
+                });
+
+                $this->confirmDeleteId = null;
+
+            } catch (\Exception $e) {
+                $this->dispatch('notify', type: 'error', message: 'Something went wrong! Department could not be deleted.');
+                \Log::error('Department delete error: ' . $e->getMessage());
+            }
         }
     }
 

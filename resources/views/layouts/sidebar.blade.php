@@ -1,6 +1,5 @@
 <!-- Sidebar Component -->
-<aside
-    id="main-sidebar"
+<aside id="main-sidebar"
     :class="{
         'w-64 translate-x-0': sidebarOpen,
         'w-0 -translate-x-full lg:w-0 lg:translate-x-0': !sidebarOpen,
@@ -32,26 +31,39 @@
             </x-sidebar.nav-item>
         </div>
 
+        <!-- Employee Management Menu -->
+        <div class="mb-6">
+            <x-sidebar.nav-item href="{{ route('employees.index') }}" :active="request()->routeIs('employees.index')" wire:navigate>
+                <x-slot name="icon">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                </x-slot>
+                Employee Management
+            </x-sidebar.nav-item>
+        </div>
+
         <!-- System Categories Menu -->
         <nav class="space-y-4">
 
             <!-- Organization Setting -->
             <div x-data="{ orgOpen: {{ request()->routeIs('settings.*') ? 'true' : 'false' }} }">
 
-                <h3 class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Organization Setting</h3>
+                <h3 class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Organization Setting
+                </h3>
 
                 <div class="space-y-1">
 
                     {{-- Dropdown Trigger Button --}}
-                    <button
-                        @click="orgOpen = !orgOpen"
+                    <button @click="orgOpen = !orgOpen"
                         class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors group"
                         :class="orgOpen ? 'bg-gray-100 text-gray-900' : ''">
 
                         <div class="flex items-center gap-3">
                             <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors"
-                                :class="orgOpen ? 'text-gray-600' : ''"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                :class="orgOpen ? 'text-gray-600' : ''" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                     d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                             </svg>
@@ -60,16 +72,19 @@
 
                         {{-- Chevron --}}
                         <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+<<<<<<< Updated upstream
                             :class="orgOpen ? 'rotate-180' : ''"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+=======
+                            :class="orgOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+>>>>>>> Stashed changes
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
 
                     {{-- Dropdown Items --}}
-                    <div
-                        x-show="orgOpen"
-                        x-transition:enter="transition ease-out duration-200"
+                    <div x-show="orgOpen" x-transition:enter="transition ease-out duration-200"
                         x-transition:enter-start="opacity-0 -translate-y-1"
                         x-transition:enter-end="opacity-100 translate-y-0"
                         x-transition:leave="transition ease-in duration-150"
@@ -78,10 +93,7 @@
                         class="ml-4 pl-3 border-l-2 border-gray-100 space-y-1 mt-1">
 
                         {{-- Organisation Profile --}}
-                        <x-sidebar.nav-item
-                            href="{{ route('settings.organisation') }}"
-                            :active="request()->routeIs('settings.organisation')"
-                            wire:navigate>
+                        <x-sidebar.nav-item href="{{ route('settings.organisation') }}" :active="request()->routeIs('settings.organisation')" wire:navigate>
                             <x-slot name="icon">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -92,9 +104,7 @@
                         </x-sidebar.nav-item>
 
                         {{-- Work Locations --}}
-                        <x-sidebar.nav-item
-                            href="{{ route('settings.work-locations') }}"
-                            :active="request()->routeIs('settings.work-locations')"
+                        <x-sidebar.nav-item href="{{ route('settings.work-locations') }}" :active="request()->routeIs('settings.work-locations')"
                             wire:navigate>
                             <x-slot name="icon">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,10 +118,7 @@
                         </x-sidebar.nav-item>
 
                         {{-- Departments --}}
-                        <x-sidebar.nav-item
-                            href="{{ route('settings.departments') }}"
-                            :active="request()->routeIs('settings.departments')"
-                            wire:navigate>
+                        <x-sidebar.nav-item href="{{ route('settings.departments') }}" :active="request()->routeIs('settings.departments')" wire:navigate>
                             <x-slot name="icon">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -122,10 +129,7 @@
                         </x-sidebar.nav-item>
 
                         {{-- Designations --}}
-                        <x-sidebar.nav-item
-                            href="{{ route('settings.designations') }}"
-                            :active="request()->routeIs('settings.designations')"
-                            wire:navigate>
+                        <x-sidebar.nav-item href="{{ route('settings.designations') }}" :active="request()->routeIs('settings.designations')" wire:navigate>
                             <x-slot name="icon">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -133,6 +137,112 @@
                                 </svg>
                             </x-slot>
                             Designations
+                        </x-sidebar.nav-item>
+
+                        {{-- Tax Slabs --}}
+                        <x-sidebar.nav-item href="{{ route('settings.tax-slabs') }}" :active="request()->routeIs('settings.tax-slabs')" wire:navigate>
+                            <x-slot name="icon">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
+                            </x-slot>
+                            Taxes
+                        </x-sidebar.nav-item>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- Setup & Configuration Dropdown --}}
+            <div x-data="{ setupOpen: {{ request()->routeIs('configurations.*') ? 'true' : 'false' }} }">
+
+                <div class="space-y-1">
+
+                    {{-- Dropdown Trigger Button --}}
+                    <button @click="setupOpen = !setupOpen"
+                        class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors group"
+                        :class="setupOpen ? 'bg-gray-100 text-gray-900' : ''">
+
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors"
+                                :class="setupOpen ? 'text-gray-600' : ''" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <span>Setup & Configuration</span>
+                        </div>
+
+                        {{-- Chevron --}}
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                            :class="setupOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {{-- Dropdown Items --}}
+                    <div x-show="setupOpen" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-1"
+                        class="ml-4 pl-3 border-l-2 border-gray-100 space-y-1 mt-1">
+
+                        {{-- Currency Setup --}}
+                        <x-sidebar.nav-item href="{{ route('configurations.currencies') }}" :active="request()->routeIs('configurations.currencies')"
+                            wire:navigate>
+                            <x-slot name="icon">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+<<<<<<< Updated upstream
+                                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+=======
+                                        d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+>>>>>>> Stashed changes
+                                </svg>
+                            </x-slot>
+                            Setup Currency
+                        </x-sidebar.nav-item>
+
+                        {{-- Salary Components --}}
+                        <x-sidebar.nav-item href="{{ route('configurations.salary-components') }}" :active="request()->routeIs('configurations.salary-components')"
+                            wire:navigate>
+                            <x-slot name="icon">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </x-slot>
+                            Salary Components
+                        </x-sidebar.nav-item>
+
+                        {{-- Bank Management --}}
+                        <x-sidebar.nav-item href="{{ route('configurations.banks.index') }}" :active="request()->routeIs('configurations.banks.*')"
+                            wire:navigate>
+                            <x-slot name="icon">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                                </svg>
+                            </x-slot>
+                            Bank Management
+                        </x-sidebar.nav-item>
+
+                         {{-- EPF / ETF --}}
+                        <x-sidebar.nav-item href="{{ route('configurations.epf-etf') }}" :active="request()->routeIs('configurations.epf-etf')"
+                            wire:navigate>
+                            <x-slot name="icon">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                                </svg>
+                            </x-slot>
+                            Statutory Components
                         </x-sidebar.nav-item>
 
                     </div>
@@ -297,7 +407,12 @@
                     <x-sidebar.nav-item href="{{ route('profile') }}" :active="request()->routeIs('profile')" wire:navigate>
                         <x-slot name="icon">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<<<<<<< Updated upstream
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+=======
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+>>>>>>> Stashed changes
                             </svg>
                         </x-slot>
                         User Profile

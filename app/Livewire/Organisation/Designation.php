@@ -8,6 +8,7 @@ use App\Models\Designation as DesignationModel;
 use App\Models\Organisation;
 use Livewire\Attributes\Layout;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
 class Designation extends Component
@@ -40,7 +41,7 @@ class Designation extends Component
                 'max:255',
                 Rule::unique('designations', 'name')
                     ->ignore($this->editingId)
-                    ->where(fn ($query) => $query->where('organisation_id', $orgId))
+                    ->where(fn($query) => $query->where('organisation_id', $orgId))
             ],
         ];
     }
@@ -74,10 +75,21 @@ class Designation extends Component
             'name'            => $this->name,
         ];
 
-        if ($this->editingId) {
-            DesignationModel::findOrFail($this->editingId)->update($data);
-        } else {
-            DesignationModel::create($data);
+        try {
+            DB::transaction(function () use ($data) {
+                if ($this->editingId) {
+                    DesignationModel::findOrFail($this->editingId)->update($data);
+                    $message = 'Designation updated successfully.';
+                } else {
+                    DesignationModel::create($data);
+                    $message = 'Designation added successfully.';
+                }
+                session()->flash('success', $message);
+            });
+        } catch (\Exception $e) {
+            session()->flash('error', 'Something went wrong! Designation could not be saved.');
+            \Log::error('Designation save error: ' . $e->getMessage());
+            return;
         }
 
         $this->closeModal();

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
 class OrganisationProfile extends Component
@@ -80,7 +81,7 @@ class OrganisationProfile extends Component
     // Edit button — For Re-Crop current logo
     public function openCropModalWithExisting(): void
     {
-        // logoPreview (cropped temp) හෝ saved logo_path — whichever available
+        //logoPreview (cropped temp) or saved logo_path — whichever available
         $url = $this->logoPreview
             ?? ($this->logo_path ? asset('storage/' . $this->logo_path) : null);
 
@@ -163,6 +164,9 @@ class OrganisationProfile extends Component
                 $this->customDateInput     = $storedFormat;
                 $this->generateCustomPreview();
             }
+        } else {
+            $this->date_format     = 'dd/mm/yyyy';
+            $this->field_separator = '/';
         }
     }
 
@@ -544,7 +548,8 @@ class OrganisationProfile extends Component
 
         $this->date_format = $originalDateFormat;
 
-        try {
+          try {
+            DB::transaction(function () use ($actualDateFormat) {
             $org = Organisation::query()->first();
 
             if (!$org) {
@@ -581,6 +586,8 @@ class OrganisationProfile extends Component
             $org->save();
 
             $this->organisationId = $org->organisation_id;
+            });
+
             $this->successMessage = 'Organisation profile updated successfully.';
             $this->errorMessage   = '';
             $this->showFilingAddressForm = false;

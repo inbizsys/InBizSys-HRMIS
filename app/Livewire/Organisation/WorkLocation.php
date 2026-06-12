@@ -8,6 +8,7 @@ use App\Models\WorkLocation as WorkLocationModel;
 use App\Models\Organisation;
 use Livewire\Attributes\Layout;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
 class WorkLocation extends Component
@@ -89,13 +90,26 @@ class WorkLocation extends Component
             'pincode'         => $this->pincode,
         ];
 
-        if ($this->editingId) {
-            WorkLocationModel::findOrFail($this->editingId)->update($data);
-        } else {
-            WorkLocationModel::create($data);
-        }
+        try {
+            DB::transaction(function () use ($data) {
 
-        $this->closeModal();
+
+                if ($this->editingId) {
+                    WorkLocationModel::findOrFail($this->editingId)->update($data);
+                    $message = 'Work Location updated successfully.';
+                } else {
+                    WorkLocationModel::create($data);
+                    $message = 'Work Location created successfully.';
+                }
+                 $this->dispatch('toast', type: 'success', message: $message);
+            });
+
+            $this->closeModal();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Something went wrong! Work Location could not be saved.');
+            \Log::error('Work Location save error: ' . $e->getMessage());
+            return;
+        }
     }
 
     public function confirmDelete(int $id): void
@@ -106,8 +120,19 @@ class WorkLocation extends Component
     public function delete(): void
     {
         if ($this->confirmDeleteId) {
-            WorkLocationModel::findOrFail($this->confirmDeleteId)->delete();
-            $this->confirmDeleteId = null;
+            try {
+                DB::transaction(function () {
+                    WorkLocationModel::findOrFail($this->confirmDeleteId)->delete();
+                    $this->dispatch('toast', type: 'success', message: 'Work Location deleted successfully.');
+                });
+
+                $this->confirmDeleteId = null;
+            } catch (\Exception $e) {
+                 $this->dispatch('toast', type: 'error', message: 'Something went wrong! Work Location could not be deleted.');
+                \Log::error('Work Location delete error: ' . $e->getMessage());
+                return;
+            }
+
         }
     }
 

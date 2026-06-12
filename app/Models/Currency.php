@@ -5,44 +5,53 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Designation extends Model
+class Currency extends Model
 {
     use HasFactory;
 
-    protected $table = 'designations';
+    protected $table = 'currencies';
 
     protected $fillable = [
         'organisation_id',
         'name',
+        'code',
+        'is_base_currency',
     ];
 
-    // ──────────────────────────────────────────────
-    // Accessors
-    // ──────────────────────────────────────────────
-
-    /**
-     * Get the total number of employees holding this designation.
-     * Shown as "Total Employees" column in the Designations listing.
-     * Uncomment once the Employee model is created.
-     */
-    // public function getTotalEmployeesAttribute(): int
-    // {
-    //     return $this->employees()->count();
-    // }
+    protected $casts = [
+        'is_base_currency' => 'boolean',
+    ];
 
     // ──────────────────────────────────────────────
     // Scopes
     // ──────────────────────────────────────────────
 
-    /**
-     * Filter designations by organisation.
-     */
-    public function scopeForOrganisation($query, int $organisationId)
+    public function scopeForOrganisation(Builder $query, int $organisationId): Builder
     {
         return $query->where('organisation_id', $organisationId);
+    }
+
+    public function scopeBase(Builder $query): Builder
+    {
+        return $query->where('is_base_currency', true);
+    }
+
+    // ──────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────
+
+    /**
+     * Get the base currency for an organisation.
+     */
+    public static function baseCurrencyFor(int $organisationId): ?self
+    {
+        return self::query()
+            ->where('organisation_id', $organisationId)
+            ->where('is_base_currency', true)
+            ->first();
     }
 
     // ──────────────────────────────────────────────
@@ -53,9 +62,4 @@ class Designation extends Model
     {
         return $this->belongsTo(Organisation::class);
     }
-
-    // public function employees(): HasMany
-    // {
-    //     return $this->hasMany(Employee::class);
-    // }
 }

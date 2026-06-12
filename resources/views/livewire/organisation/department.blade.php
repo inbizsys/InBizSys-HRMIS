@@ -1,13 +1,13 @@
 <div class="h-full bg-gray-50">
     <div class="w-full py-6 px-6">
-
+        <livewire:toast-notification />
         {{-- Header --}}
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-xl font-semibold text-gray-800">Departments</h1>
             <button type="button" wire:click="openModal"
                 class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 New Department
             </button>
@@ -18,11 +18,16 @@
             <table class="w-full text-sm text-left">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50">
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department Name</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department Code</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Employees</th>
-                        <th class="px-6 py-3 text-xs text-right font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department
+                            Name</th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Department
+                            Code</th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description
+                        </th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total
+                            Employees</th>
+                        <th class="px-6 py-3 text-xs text-right font-semibold text-gray-500 uppercase tracking-wider">
+                            Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -74,7 +79,7 @@
             </table>
 
             {{-- Pagination Links --}}
-            @if($departmentList->hasPages())
+            @if ($departmentList->hasPages())
                 <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
                     {{ $departmentList->links() }}
                 </div>
@@ -82,8 +87,8 @@
         </div>
 
         {{-- Add / Edit Modal --}}
-        @if($showModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        @if ($showModal)
+            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50"
                 wire:keydown.escape="closeModal">
                 <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
 
@@ -95,7 +100,8 @@
                         <button type="button" wire:click="closeModal"
                             class="text-gray-400 hover:text-gray-600 transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
@@ -110,36 +116,40 @@
                                 <input type="text" wire:model="name"
                                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     autofocus>
-                                @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('name')
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Department Code</label>
                                 <input type="text" wire:model="code"
                                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                @error('code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('code')
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea wire:model="description" rows="3"
-                                placeholder="Max 250 characters"
-                                maxlength="250"
+                            <textarea wire:model="description" rows="3" placeholder="Max 250 characters" maxlength="250"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
-                            @error('description') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            @error('description')
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
                     {{-- Modal Footer --}}
                     <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
                         <div class="flex items-center gap-4">
-                            <button type="button" wire:click="save"
-                                wire:loading.attr="disabled"
+                            <button type="button" wire:click="save" wire:loading.attr="disabled"
                                 class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-8 py-2 rounded-lg transition-colors disabled:opacity-60 flex items-center gap-2">
                                 <span wire:loading wire:target="save">
                                     <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                                        <circle class="opacity-25" cx="12" cy="12" r="10"
+                                            stroke="currentColor" stroke-width="4" />
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                                     </svg>
                                 </span>
                                 Save
@@ -156,8 +166,8 @@
         @endif
 
         {{-- Delete Confirm Modal --}}
-        @if($confirmDeleteId)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        @if ($confirmDeleteId)
+            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
                 <div class="bg-white rounded-xl shadow-2xl  max-w-lg mx-4 p-6">
                     <h3 class="text-base font-semibold text-gray-800 mb-2">Delete Department?</h3>
                     <p class="text-sm text-gray-500 mb-5">This action cannot be undone. Are you sure?</p>
@@ -166,7 +176,7 @@
                             class="border border-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                             Cancel
                         </button>
-                        <button type="button" wire:click="delete"
+                        <button type="button" wire:click="delete" wire:loading.attr="disabled"
                             class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
                             Delete
                         </button>

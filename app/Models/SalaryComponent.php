@@ -5,18 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Designation extends Model
+class SalaryComponent extends Model
 {
     use HasFactory;
 
-    protected $table = 'designations';
+    protected $table = 'salary_components';
 
     protected $fillable = [
         'organisation_id',
+        'type',
         'name',
+        'name_in_payslip',
+        'limit',
+        'is_active',
+        'is_system',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_system' => 'boolean',
+        'limit'     => 'decimal:2',
     ];
 
     // ──────────────────────────────────────────────
@@ -24,25 +35,34 @@ class Designation extends Model
     // ──────────────────────────────────────────────
 
     /**
-     * Get the total number of employees holding this designation.
-     * Shown as "Total Employees" column in the Designations listing.
-     * Uncomment once the Employee model is created.
+     * Get a human-readable type label.
      */
-    // public function getTotalEmployeesAttribute(): int
-    // {
-    //     return $this->employees()->count();
-    // }
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'earning'   => 'Earning',
+            'deduction' => 'Deduction',
+            default     => ucfirst($this->type),
+        };
+    }
 
     // ──────────────────────────────────────────────
     // Scopes
     // ──────────────────────────────────────────────
 
-    /**
-     * Filter designations by organisation.
-     */
-    public function scopeForOrganisation($query, int $organisationId)
+    public function scopeForOrganisation(Builder $query, int $organisationId): Builder
     {
         return $query->where('organisation_id', $organisationId);
+    }
+
+    public function scopeEarnings(Builder $query): Builder
+    {
+        return $query->where('type', 'earning');
+    }
+
+    public function scopeDeductions(Builder $query): Builder
+    {
+        return $query->where('type', 'deduction');
     }
 
     // ──────────────────────────────────────────────
@@ -53,9 +73,4 @@ class Designation extends Model
     {
         return $this->belongsTo(Organisation::class);
     }
-
-    // public function employees(): HasMany
-    // {
-    //     return $this->hasMany(Employee::class);
-    // }
 }
