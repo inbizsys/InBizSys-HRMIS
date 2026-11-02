@@ -62,6 +62,7 @@
                 <h1 class="text-xl font-semibold text-gray-800">Tax Slabs</h1>
                 <p class="text-xs text-gray-500 mt-0.5">Summarized Tax Table – Regular Profits from Employment</p>
             </div>
+            @can('create tax')
             <button type="button" wire:click="openModal"
                 class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,6 +70,7 @@
                 </svg>
                 New Slab
             </button>
+            @endcan
         </div>
 
         {{-- ── Tax Table ── --}}
@@ -103,7 +105,7 @@
                                 </span>
                             </td>
 
-                            {{-- Range Description — Model accessor එකෙන් dynamic currency සමග ගන්නවා --}}
+                            {{-- Range Description — retrieved dynamically with currency from model accessor --}}
                             <td class="px-6 py-4 text-gray-800 font-medium">
                                 <button type="button" wire:click="edit({{ $slab->id }})"
                                     class="text-left text-blue-600 hover:text-blue-700">
@@ -132,7 +134,7 @@
                                 @endif
                             </td>
 
-                            {{-- Tax Label — Model accessor එකෙන් dynamic currency සමග ගන්නවා --}}
+                            {{-- Tax Label — retrieved dynamically with currency from model accessor --}}
                             <td class="px-6 py-4 text-gray-600 text-xs max-w-xs">
                                 {{ $slab->tax_label }}
                             </td>
@@ -161,6 +163,7 @@
                                     </button>
 
                                     {{-- Edit --}}
+                                    @can('edit tax')
                                     <button type="button" wire:click="edit({{ $slab->id }})"
                                         class="text-blue-600 hover:text-blue-800 transition-colors"
                                         title="Edit Slab">
@@ -169,8 +172,10 @@
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                     </button>
+                                    @endcan
 
                                     {{-- Delete --}}
+                                    @can('delete tax')
                                     <button type="button" wire:click="confirmDelete({{ $slab->id }})"
                                         class="text-red-600 hover:text-red-800 transition-colors"
                                         title="Delete Slab">
@@ -179,6 +184,7 @@
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
                                     </button>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

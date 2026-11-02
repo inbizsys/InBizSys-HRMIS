@@ -4,11 +4,12 @@ namespace App\Livewire\Organisation;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Designation as DesignationModel;
-use App\Models\Organisation;
+use Spatie\Permission\Models\Role;
 use Livewire\Attributes\Layout;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
 
 #[Layout('layouts.app')]
 class Designation extends Component
@@ -32,16 +33,13 @@ class Designation extends Component
 
     protected function rules(): array
     {
-        $orgId = Organisation::query()->first()?->id;
-
         return [
             'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('designations', 'name')
+                Rule::unique('roles', 'name')
                     ->ignore($this->editingId)
-                    ->where(fn($query) => $query->where('organisation_id', $orgId))
             ],
         ];
     }
@@ -58,7 +56,7 @@ class Designation extends Component
 
     public function edit(int $id): void
     {
-        $record          = DesignationModel::findOrFail($id);
+        $record          = Role::findOrFail($id);
         $this->editingId = $id;
         $this->name      = $record->name;
         $this->showModal = true;
@@ -68,27 +66,25 @@ class Designation extends Component
     {
         $this->validate();
 
-        $orgId = Organisation::query()->first()?->id;
-
         $data = [
-            'organisation_id' => $orgId,
             'name'            => $this->name,
+            'guard_name' => 'web',
         ];
 
         try {
             DB::transaction(function () use ($data) {
                 if ($this->editingId) {
-                    DesignationModel::findOrFail($this->editingId)->update($data);
+                    Role::findOrFail($this->editingId)->update($data);
                     $message = 'Designation updated successfully.';
                 } else {
-                    DesignationModel::create($data);
+                    Role::create($data);
                     $message = 'Designation added successfully.';
                 }
                 session()->flash('success', $message);
             });
         } catch (\Exception $e) {
             session()->flash('error', 'Something went wrong! Designation could not be saved.');
-            \Log::error('Designation save error: ' . $e->getMessage());
+            Log::error('Designation save error: ' . $e->getMessage());
             return;
         }
 
@@ -103,7 +99,7 @@ class Designation extends Component
     public function delete(): void
     {
         if ($this->confirmDeleteId) {
-            DesignationModel::findOrFail($this->confirmDeleteId)->delete();
+            Role::findOrFail($this->confirmDeleteId)->delete();
             $this->confirmDeleteId = null;
         }
     }
@@ -128,16 +124,15 @@ class Designation extends Component
 
     public function render()
     {
-        $org = Organisation::first(['id']);
+        
 
         // Database eken pagination ekka data load kirima
-        $designations = DesignationModel::query()
-            ->when($org, fn($query) => $query->where('organisation_id', $org->id), fn($query) => $query->whereRaw('1 = 0'))
+        $roles = Role::query()
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return view('livewire.organisation.designation', [
-            'designationList' => $designations
+            'designationList' => $roles
         ]);
     }
 }

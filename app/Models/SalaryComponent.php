@@ -19,7 +19,11 @@ class SalaryComponent extends Model
         'type',
         'name',
         'name_in_payslip',
+        'calculation_type',
         'limit',
+        'is_epf_applicable',
+        'is_taxable',
+        'is_recurring',
         'is_active',
         'is_system',
     ];
@@ -28,6 +32,10 @@ class SalaryComponent extends Model
         'is_active' => 'boolean',
         'is_system' => 'boolean',
         'limit'     => 'decimal:2',
+        'calculation_type' => 'string',
+        'is_epf_applicable' => 'boolean',
+        'is_taxable' => 'boolean',
+        'is_recurring' => 'boolean',
     ];
 
     // ──────────────────────────────────────────────

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Department extends BaseModel
 {
     use HasFactory, SoftDeletes;
-   
+
 
     protected $table = 'departments';
 
@@ -21,6 +21,7 @@ class Department extends BaseModel
         'name',
         'code',
         'description',
+        'supervisor_id',
     ];
 
     // ──────────────────────────────────────────────
@@ -37,6 +38,10 @@ class Department extends BaseModel
     //     return $this->employees()->count();
     // }
 
+    public function supervisor(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'supervisor_id');
+    }
     /**
      * Get a truncated description for table listing display (like "Production Department - Rubber Prod...").
      */

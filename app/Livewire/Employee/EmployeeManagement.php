@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Employee;
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Employee;
@@ -9,12 +10,25 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
-use Carbon\Carbon;
-use App\Models\Designation;
+use Spatie\Permission\Models\Role;
 use App\Models\Bank;
 use App\Models\BankBranch;
+use App\Models\Organisation;
+use App\Models\Department;
+use App\Models\Shift;
+use App\Models\WorkLocation;
 use Illuminate\Support\Str;
+use App\Models\EmployeeCategory;
 
+/**
+ * EmployeeManagement Livewire Component
+ *
+ * 4-step wizard modal
+ *   Step 1 → Personal Info & System Access
+ *   Step 2 → Address & Emergency Contacts
+ *   Step 3 → Family Details (Spouse + Children)
+ *   Step 4 → Salary & Bank Details
+ */
 #[Layout('layouts.app')]
 class EmployeeManagement extends Component
 {
@@ -23,125 +37,291 @@ class EmployeeManagement extends Component
     // ==========================================
     // --- UI STATE MANAGEMENT & CONTROL MODALS ---
     // ==========================================
-    public $isModalOpen = false;         // Controls employee creation/edit modal visibility
-    public $isEditMode = false;          // Switch between Form Store (false) and Update (true)
-    public $currentStep = 1;             // Tracks the active step in the multi-step form
-    public $totalSteps = 4;              // Max steps available in the wizard
-    public $selectedEmployeeId;          // Holds ID during edit/update operation
-    public $isDropdownOpen = false;      // Generic state toggle for dropdown custom menus
+
+    public $isModalOpen = false;
+    public $isEditMode = false;
+    public $currentStep = 1;
+    public $totalSteps = 4;
+    public $selectedEmployeeId;
+    public $isDropdownOpen = false;
 
     // ==========================================
     // --- GLOBAL SEARCH & FILTER PROPERTIES ----
     // ==========================================
-    public $search = '';                 // Query string for real-time employee search
-    public $filterPosition = '';         // Filters list view by job position/designation
-    public $filterStatus = '';           // Filters list view by employee status (Active/Inactive)
+
+    public $search = '';
+    public $filterPosition = '';
+    public $isFilterDropdownOpen = false;
+    public $isPositionDropdownOpen = false;
 
     // ==========================================
     // --- STEP 1: PERSONAL INFO & ACCESS -------
     // ==========================================
-    public $employee_id, $first_name, $last_name, $date_of_birth, $gender;
-    public $nic_number, $passport_number, $marital_status, $phone_number;
-    public $job_position, $country, $date_of_join;
-    public $status = 'Active';           // Default corporate status
-    public $system_access = true;        // Controls Employee Portal/Login Generation authorization
-    public $email;                       // Corporate email tied directly to system application user access
 
+    public $employee_id, $epf_number, $first_name, $last_name, $date_of_birth, $gender;
+    public $nic_number, $passport_number, $marital_status, $phone_number;
+    public $job_position, $work_location, $date_of_join;
+
+    public $status = 'Active';
+    public $system_access = true;
+    public $email;
+    public string $password = ''; // Custom Password Property
+    public $isGenderDropdownOpen = false;
+    public $isJobDropdownOpen = false;
+    public $isMaritalDropdownOpen = false;
+    public $isStatusDropdownOpen = false;
+
+    // --- DEPARTMENT DROPDOWN DATA FIELDS ---
+    public $department_id = null;
+    public string $selectedDepartmentName = '';
+    public bool $isDepartmentDropdownOpen = false;
+
+    // --- SHIFT & OT DATA FIELDS (FIX FOR THE ERROR) ---
+    public $shift_id = null;
+    public string $selectedShiftName = '';
+    public bool $isShiftDropdownOpen = false;
+    public bool $is_ot_eligible = false;
+    public bool $isCategoryOtEnabled = false;
     // ==========================================
     // --- STEP 2: ADDRESS & EMERGENCY ----------
     // ==========================================
-    // NOTE: Structural residential address parameters are now integrated directly into the core employees table
-    public $address_line_1, $address_line_2, $city, $postal_code; // Residential info
-    public $contact_name, $relationship, $emergency_phone;        // Immediate emergency contact
+
+    public $address_line_1, $address_line_2, $city, $postal_code;
+    public $emergency_contacts = [];
 
     // ==========================================
     // --- STEP 3: FAMILY DETAILS ---------------
     // ==========================================
-    public $spouse_name, $spouse_dob, $spouse_nic, $spouse_passport; // Dependant Spouse info
-    public $children = [];                                           // Dynamic array of child records
+
+    public $spouse_name, $spouse_dob, $spouse_nic, $spouse_passport;
+    public $children = [];
+
+    public $openChildGenderIndex = null;
+    public $openChildMaritalIndex = null;
 
     // ==========================================
     // --- STEP 4: SALARY & BANK DETAILS --------
     // ==========================================
-    public $basic_salary, $allowances = 0, $deductions = 0, $bonus = 0; // Remuneration properties
-    public $currency = 'LKR';                                           // Default currency denomination
-    public $payment_method = 'Bank Transfer';                           // Default payroll channel
+
+    public $basic_salary, $allowances = 0, $deductions = 0, $bonus = 0;
+    public $currency = 'LKR';
+    public $payment_method = 'Bank Transfer';
     public $bank_name, $branch_name, $account_holder_name, $account_number;
-    public $account_type = 'Savings';                                   // Default bank account tier
+    public $account_type = 'Savings';
+    public $isPaymentDropdownOpen = false;
 
     // ==========================================
-    // --- SEARCHABLE BANK DROPDOWN COMPONENT ----
+    // --- SEARCHABLE BANK DROPDOWN COMPONENT ---
     // ==========================================
-    public $searchBank = '';             // Tracks typed input inside custom bank selection
-    public $searchBranch = '';           // Tracks typed input inside branch selection
-    public $isBankDropdownOpen = false;  // Toggles bank result list UI panel
-    public $isBranchDropdownOpen = false; // Toggles branch result list UI panel
-    public $banks = [];                  // Holds listed active bank objects
-    public $branches = [];               // Dynamic array containing branches matched to chosen bank
+
+    public $searchBank = '';
+    public $searchBranch = '';
+    public $isBankDropdownOpen = false;
+    public $isBranchDropdownOpen = false;
+    public $banks = [];
+    public $branches = [];
+    public $filterStatus = '';
+    public $isLocationDropdownOpen = false;
+
+    // --- EMPLOYEE CATEGORY DATA FIELDS ---
+public $employee_category_id = null;
+public string $selectedCategoryName = '';
+public bool $isCategoryDropdownOpen = false;
+
+public function toggleCategoryDropdown(): void
+{
+    $this->isCategoryDropdownOpen = !$this->isCategoryDropdownOpen;
+}
+
+public function selectCategory($categoryId, string $categoryName): void
+    {
+        $this->employee_category_id = $categoryId ?: null;
+        $this->selectedCategoryName = $categoryName;
+        $this->isCategoryDropdownOpen = false;
+        if ($this->employee_category_id) {
+            $category = EmployeeCategory::find($this->employee_category_id);
+            if ($category) {
+                // Set OT eligibility directly based on employee category
+                $this->isCategoryOtEnabled = (bool) $category->is_ot_eligible;
+                $this->is_ot_eligible = $this->isCategoryOtEnabled;
+            }
+        } else {
+            $this->isCategoryOtEnabled = false;
+            $this->is_ot_eligible = false;
+        }
+    }
+    // ==================================
+    // -- LIVEWIRE BRIDGE METHODS -------
+    // ==================================
+
+    public function selectGender($value)
+    {
+        $this->gender = $value;
+        $this->isGenderDropdownOpen = false;
+    }
+
+    public function selectJobPosition($value)
+    {
+        $this->job_position = $value;
+        $this->isJobDropdownOpen = false;
+    }
+
+    public function selectWorkLocation($value)
+    {
+        $this->work_location = $value;
+        $this->isLocationDropdownOpen = false;
+    }
+
+    public function selectMaritalStatus($value)
+    {
+        $this->marital_status = $value;
+        $this->isMaritalDropdownOpen = false;
+    }
+
+    public function selectStatus($value)
+    {
+        $this->status = $value;
+        $this->isStatusDropdownOpen = false;
+    }
+
+    public function selectChildGender($index, $value)
+    {
+        $this->children[$index]['gender'] = $value;
+        $this->openChildGenderIndex = null;
+    }
+
+    public function selectChildMaritalStatus($index, $value)
+    {
+        $this->children[$index]['marital_status'] = $value;
+        $this->openChildMaritalIndex = null;
+    }
+
+    public function selectPaymentMethod($value)
+    {
+        $this->payment_method = $value;
+        $this->isPaymentDropdownOpen = false;
+    }
+
+    public function toggleDepartmentDropdown(): void
+    {
+        $this->isDepartmentDropdownOpen = !$this->isDepartmentDropdownOpen;
+    }
+
+    public function selectDepartment($departmentId, string $departmentName): void
+    {
+        $this->department_id = $departmentId ?: null;
+        $this->selectedDepartmentName = $departmentName;
+        $this->isDepartmentDropdownOpen = false;
+    }
+
+    // --- SHIFT DROPDOWN METHODS ---
+    public function toggleShiftDropdown(): void
+    {
+        $this->isShiftDropdownOpen = !$this->isShiftDropdownOpen;
+    }
+
+    public function selectShift($shiftId, string $shiftName): void
+    {
+        $this->shift_id = $shiftId ?: null;
+        $this->selectedShiftName = $shiftName;
+        $this->isShiftDropdownOpen = false;
+    }
+
+    // ==========================================
+    // --- LIFECYCLE HOOKS ----------------------
+    // ==========================================
+
+    public function mount()
+    {
+        $this->emergency_contacts = [
+            ['name' => '', 'relationship' => '', 'phone' => '']
+        ];
+    }
+
+    // ==========================================
+    // --- EMERGENCY CONTACT MANAGEMENT ---------
+    // ==========================================
+
+    public function addEmergencyContact()
+    {
+        $this->emergency_contacts[] = [
+            'name' => '',
+            'relationship' => '',
+            'phone' => ''
+        ];
+    }
+
+    public function removeEmergencyContact($index)
+    {
+        unset($this->emergency_contacts[$index]);
+        $this->emergency_contacts = array_values($this->emergency_contacts);
+    }
 
     // ==========================================
     // --- REAL-TIME LIVEWIRE SEARCH RESETS -----
     // ==========================================
+
     public function updatingSearch()
     {
-        $this->resetPage(); // Reverts pagination cursor back to page 1 on active typing
+        $this->resetPage();
     }
-    public function updatingFilterPosition()
+
+    public function selectFilterStatus($value)
     {
-        $this->resetPage(); // Reverts pagination cursor back to page 1 on position filter change
+        $this->filterStatus = $value;
+        $this->isFilterDropdownOpen = false;
     }
-    public function updatingFilterStatus()
+
+    public function selectFilterPosition($value)
     {
-        $this->resetPage(); // Reverts pagination cursor back to page 1 on status filter change
+        $this->filterPosition = $value;
+        $this->isPositionDropdownOpen = false;
     }
 
     // ==========================================
-    // --- WIZARD / MODAL PANEL TRIGGERS -------
+    // --- MODAL OPEN / CLOSE -------------------
     // ==========================================
-    /**
-     * Initializes state and displays fresh creation modal layout
-     */
+
     public function openModal()
     {
         $this->resetForm();
-
-        // 🌟 [මෙන්න මෙතනට මේක එකතු කරන්න] 
-        // පරණ රතු පාට වැදුණු වැරදි (Validation Errors) ඔක්කොම ක්ලියර් වෙලා යනවා
         $this->resetValidation();
 
         $this->isEditMode = false;
         $this->isModalOpen = true;
         $this->currentStep = 1;
 
-        // Fetches operational banks alphabetically to bind dropdown view cache
         $this->banks = Bank::orderBy('bank_name', 'asc')->get()->toArray();
     }
 
-    /**
-     * Hides the active registration modal
-     */
     public function closeModal()
     {
         $this->isModalOpen = false;
     }
 
     // ==========================================
-    // --- STEP NAVIGATION STEERING CONTROL -----
+    // --- STEP NAVIGATION ----------------------
     // ==========================================
-    /**
-     * Validates current step metrics and advances workflow forward
-     */
+
     public function nextStep()
     {
         $this->validateCurrentStep();
+
+        if ($this->currentStep == 3) {
+            session([
+                'wizard_spouse_name'     => $this->spouse_name,
+                'wizard_spouse_dob'      => $this->spouse_dob,
+                'wizard_spouse_nic'      => $this->spouse_nic,
+                'wizard_spouse_passport' => $this->spouse_passport,
+                'wizard_children'        => $this->children,
+            ]);
+        }
+
         if ($this->currentStep < $this->totalSteps) {
             $this->currentStep++;
         }
     }
 
-    /**
-     * Reverts form view wizard back one step level
-     */
     public function previousStep()
     {
         if ($this->currentStep > 1) {
@@ -149,28 +329,33 @@ class EmployeeManagement extends Component
         }
     }
 
-    /**
-     * Direct Navigation Jump Steering (via clicking top stepper numbers directly)
-     */
     public function setStep($step)
     {
-        // Enforces forward movement checks before jumping forward prematurely
         if ($step > $this->currentStep) {
             $this->validateCurrentStep();
         }
+
+        if ($this->currentStep == 3) {
+            session([
+                'wizard_spouse_name'     => $this->spouse_name,
+                'wizard_spouse_dob'      => $this->spouse_dob,
+                'wizard_spouse_nic'      => $this->spouse_nic,
+                'wizard_spouse_passport' => $this->spouse_passport,
+                'wizard_children'        => $this->children,
+            ]);
+        }
+
         $this->currentStep = $step;
     }
 
     // ==========================================
-    // --- COMPARTMENTALIZED FORM VALIDATION ----
+    // --- STEP-BY-STEP FORM VALIDATION ---------
     // ==========================================
-    /**
-     * Executes localized parameter validation dependent on currently viewable step metrics
-     */
+
     private function validateCurrentStep()
     {
         if ($this->currentStep == 1) {
-            // Finding runtime user identifier to ignore uniquely mapped constraints during edit updates
+
             $userIdToIgnore = 'NULL';
             if ($this->selectedEmployeeId) {
                 $emp = Employee::find($this->selectedEmployeeId);
@@ -178,65 +363,129 @@ class EmployeeManagement extends Component
             }
 
             $this->validate([
-                'employee_id'    => 'required|unique:employees,employee_id,' . $this->selectedEmployeeId,
-                'first_name'     => 'required|string|max:255',
-                'last_name'      => 'required|string|max:255',
-                'date_of_birth'  => 'required|date',
-                'gender'         => 'required|in:Male,Female,Other',
-                'marital_status' => 'required|in:Single,Married,Divorced',
-                'phone_number'   => 'required|string',
-                'job_position'   => 'required|string',
-                'country'        => 'required|string',
-                'email'          => 'nullable|email|unique:users,email,' . $userIdToIgnore, // Enforces application email uniqueness
+                'employee_id'     => 'required|unique:employees,employee_id,' . $this->selectedEmployeeId,
+                'epf_number'  => 'nullable|string|max:50',
+                'first_name'      => 'required|string|max:255',
+                'last_name'       => 'required|string|max:255',
+                'date_of_birth'   => 'required|date',
+                'gender'          => 'required|in:Male,Female,Other',
+                'marital_status'  => 'required|in:Single,Married,Divorced',
+                'nic_number'      => 'required_without:passport_number|nullable|string|unique:employees,nic_number,' . $this->selectedEmployeeId,
+                'passport_number' => 'required_without:nic_number|nullable|string|unique:employees,passport_number,' . $this->selectedEmployeeId,
+                'phone_number'    => 'required|string',
+                'job_position'    => 'required|string',
+                'work_location'   => 'required|string',
+                'shift_id'        => 'nullable|exists:shifts,id',
+                'is_ot_eligible'  => 'boolean',
+                'status'          => 'nullable|in:Active,Inactive,Suspended',
+                'email'           => 'required|email|unique:users,email,' . $userIdToIgnore,
+                'password'        => 'nullable|string|min:6',
+                'employee_category_id' => 'required|exists:employee_categories,id',
+            ], [
+                'nic_number.required_without'      => 'Either NIC or Passport number must be provided.',
+                'passport_number.required_without' => 'Either NIC or Passport number must be provided.',
+                'nic_number.unique'                => 'This NIC number has already been taken.',
+                'passport_number.unique'           => 'This Passport number has already been taken.',
             ]);
         } elseif ($this->currentStep == 2) {
+
             $this->validate([
-                'address_line_1'  => 'required|string',
-                'city'            => 'required|string',
-                'contact_name'    => 'required|string',
-                'relationship'    => 'required|string',
-                'emergency_phone' => 'required|string',
+                'address_line_1'                    => 'required|string',
+                'city'                              => 'required|string',
+                'emergency_contacts'                => 'required|array|min:1',
+                'emergency_contacts.*.name'         => 'required|string',
+                'emergency_contacts.*.relationship' => 'required|string',
+                'emergency_contacts.*.phone'        => 'required|string',
+            ], [
+                'emergency_contacts.*.name.required'         => 'The contact name is required.',
+                'emergency_contacts.*.relationship.required' => 'The relationship is required.',
+                'emergency_contacts.*.phone.required'        => 'The phone number is required.',
             ]);
         } elseif ($this->currentStep == 3) {
-            $this->validate([
-                'children.*.name'          => 'nullable|string',
-                'children.*.date_of_birth' => 'nullable|date',
-            ]);
+
+            if ($this->marital_status === 'Married') {
+                $this->validate([
+                    'spouse_name'     => 'required|string|min:3|max:255',
+                    'spouse_dob'      => 'required|date',
+                    'spouse_nic'      => 'required_without:spouse_passport|nullable|string',
+                    'spouse_passport' => 'required_without:spouse_nic|nullable|string',
+                ], [
+                    'spouse_name.required'             => 'The spouse name is required.',
+                    'spouse_name.min'                  => 'The spouse name must be at least 3 characters.',
+                    'spouse_dob.required'              => 'The spouse date of birth is required.',
+                    'spouse_nic.required_without'      => 'Either spouse NIC or Passport number must be provided.',
+                    'spouse_passport.required_without' => 'Either spouse NIC or Passport number must be provided.',
+                ]);
+            }
+
+            if (!empty($this->children)) {
+                $this->validate([
+                    'children.*.name'          => 'required|string|min:3',
+                    'children.*.date_of_birth' => 'nullable|date',
+                    'children.*.gender'        => 'required|in:Male,Female',
+                ]);
+            }
         } elseif ($this->currentStep == 4) {
+
+            $minSalary = 0;
+            $maxSalary = null;
+
+            if ($this->employee_category_id) {
+                $category = EmployeeCategory::find($this->employee_category_id);
+                if ($category) {
+                    $minSalary = (float) $category->min_basic_salary;
+                    if ($category->max_basic_salary !== null && (float) $category->max_basic_salary > 0) {
+                        $maxSalary = (float) $category->max_basic_salary;
+                    }
+                }
+            }
+
+            $salaryRules = ['required', 'numeric', "min:{$minSalary}"];
+            $salaryMessages = [
+                'basic_salary.min' => 'Basic Salary must be at least LKR ' . number_format($minSalary, 2) . ' for this category.',
+            ];
+
+            if ($maxSalary !== null) {
+                $salaryRules[] = "max:{$maxSalary}";
+                $salaryMessages['basic_salary.max'] = 'Basic Salary cannot exceed LKR ' . number_format($maxSalary, 2) . ' for this category.';
+            }
+
             $this->validate([
-                'basic_salary'   => 'required|numeric',
+                'basic_salary'   => $salaryRules,
                 'currency'       => 'required|string|max:10',
                 'payment_method' => 'required|string',
                 'bank_name'      => 'required|string',
                 'branch_name'    => 'required|string',
                 'account_number' => 'nullable|string',
-            ]);
+            ], $salaryMessages);
         }
     }
 
     // ==========================================
-    // --- DROPDOWN INTERACTION HANDLERS --------
+    // --- BANK SEARCHABLE DROPDOWN HANDLERS ----
     // ==========================================
-    /**
-     * Sets chosen banking brand parameters and fetches linked branch networks
-     */
+
     public function selectBank($bankName, $bankId)
     {
         $this->bank_name = $bankName;
         $this->searchBank = $bankName;
         $this->isBankDropdownOpen = false;
 
-        // Flushing previous branch definitions to avoid inaccurate cross-wiring maps
         $this->branch_name = '';
         $this->searchBranch = '';
-
-        // Querying dynamic mapping branch criteria according to incoming primary bank index
         $this->branches = BankBranch::where('bank_id', $bankId)->orderBy('branch_name', 'asc')->get()->toArray();
     }
 
-    /**
-     * Binds selected branch parameters to active model tracking instance state
-     */
+    public function updatedSearchBank($value)
+    {
+        if (empty(trim($value))) {
+            $this->bank_name = null;
+            $this->searchBranch = '';
+            $this->isBankDropdownOpen = true;
+            $this->isBranchDropdownOpen = false;
+        }
+    }
+
     public function selectBranch($branchName)
     {
         $this->branch_name = $branchName;
@@ -245,11 +494,9 @@ class EmployeeManagement extends Component
     }
 
     // ==========================================
-    // --- DYNAMIC REPEATER FAMILY SUB-FORMS ----
+    // --- CHILDREN MANAGEMENT ------------------
     // ==========================================
-    /**
-     * Appends a new empty collection item onto localized children reference matrix
-     */
+
     public function addChild()
     {
         $this->children[] = [
@@ -260,106 +507,124 @@ class EmployeeManagement extends Component
         ];
     }
 
-    /**
-     * Drops child entry item record reference index and cleans sorting layout values
-     */
     public function removeChild($index)
     {
         unset($this->children[$index]);
-        $this->children = array_values($this->children); // Re-indexes array to keep sequential layout indices intact
+        $this->children = array_values($this->children);
     }
 
     // ==========================================
-    // --- UPDATE SYSTEM DATA RETRIEVAL WORK ----
+    // --- EDIT MODE: DATA LOAD -----------------
     // ==========================================
-    /**
-     * Loads existing entity model trees along with structural relational profiles into component variables for editing
-     */
-
-
 
     public function editEmployee($id)
     {
         $this->resetForm();
         $this->isEditMode = true;
         $this->selectedEmployeeId = $id;
+        $this->resetValidation();
 
-        // Build bank selection dataset options
         $this->banks = Bank::orderBy('bank_name', 'asc')->get()->toArray();
-
-        // Hydrates core context alongside related nested records
-        $employee = Employee::with(['user', 'emergencyContact', 'employeeRelations', 'salaryAndBank'])->findOrFail($id);
-
-        // --- Populate Step 1 Personal Metadata ---
-        $this->employee_id = $employee->employee_id;
-        $this->first_name = $employee->first_name;
-        $this->last_name = $employee->last_name;
-        $this->date_of_birth = $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : null;
-        $this->gender = $employee->gender;
-        $this->nic_number = $employee->nic_number;
-        $this->passport_number = $employee->passport_number;
-        $this->marital_status = $employee->marital_status;
-        $this->phone_number = $employee->phone_number;
-        $this->job_position = $employee->job_position;
-        $this->country = $employee->country;
-        $this->date_of_join = $employee->date_of_join ? \Carbon\Carbon::parse($employee->date_of_join)->format('Y-m-d') : null;
-        $this->status = $employee->status;
-        $this->system_access = ($employee->status === 'Active') ? true : false;
-
-        // 🌟 [වෙනස්කම]: Email එක අරන්, ඒක string එකක් විදිහට පිරිසිදු කරලා public $email එකට දානවා
+        $employee = Employee::with(['user', 'emergencyContacts', 'relations', 'salaryAndBank', 'shift'])->findOrFail($id);
         $this->email = $employee->user ? trim($employee->user->email) : null;
 
-        // --- Populate Step 2 Structural Residential Address info ---
+        // --- Load Assigned Department & Shift Details ---
+        $this->department_id = $employee->department_id;
+        $this->selectedDepartmentName = $employee->department ? $employee->department->name : '';
+        $this->shift_id = $employee->shift_id;
+        $this->selectedShiftName = $employee->shift ? $employee->shift->name : '';
+        $this->is_ot_eligible = (bool) $employee->is_ot_eligible;
+        $this->employee_category_id = $employee->employee_category_id;
+        $this->selectedCategoryName = $employee->category ? $employee->category->name : '';
+
+        // --- Step 1: Personal Info ---
+        $this->employee_id    = $employee->employee_id;
+        $this->epf_number     = $employee->epf_number; 
+        $this->first_name     = $employee->first_name;
+        $this->last_name      = $employee->last_name;
+        $this->date_of_birth  = $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('Y-m-d') : null;
+        $this->gender         = $employee->gender;
+        $this->nic_number     = $employee->nic_number;
+        $this->passport_number = $employee->passport_number;
+        $this->marital_status = $employee->marital_status;
+        $this->phone_number   = $employee->phone_number;
+        $this->job_position   = $employee->job_position;
+        $this->work_location  = $employee->work_location;
+        $this->date_of_join   = $employee->date_of_join ? \Carbon\Carbon::parse($employee->date_of_join)->format('Y-m-d') : null;
+        $this->status         = $employee->status;
+        $this->isCategoryOtEnabled = $employee->employeeCategory ? (bool) $employee->employeeCategory->is_ot_eligible : false;
+        $this->is_ot_eligible = (bool) $employee->is_ot_eligible;
+        $this->email          = $employee->user ? trim($employee->user->email) : null;
+        $this->password       = '';
+        
+
+
+        if ($employee->user && $employee->user->roles->count() > 0) {
+            $this->job_position = $employee->user->roles->first()->name;
+        } else {
+            $this->job_position = $employee->job_position;
+        }
+
+        // --- Step 2: Address ---
         $this->address_line_1 = $employee->address_line_1;
         $this->address_line_2 = $employee->address_line_2;
         $this->city           = $employee->city;
         $this->postal_code    = $employee->postal_code;
 
-        if ($employee->emergencyContact) {
-            $this->contact_name = $employee->emergencyContact->contact_name;
-            $this->relationship = $employee->emergencyContact->relationship;
-            $this->emergency_phone = $employee->emergencyContact->phone_number;
+        $this->emergency_contacts = [];
+        if ($employee->emergencyContacts && $employee->emergencyContacts->count() > 0) {
+            foreach ($employee->emergencyContacts as $contact) {
+                $this->emergency_contacts[] = [
+                    'name'         => $contact->contact_name,
+                    'relationship' => $contact->relationship,
+                    'phone'        => $contact->phone_number,
+                ];
+            }
+        } else {
+            $this->emergency_contacts = [
+                ['name' => '', 'relationship' => '', 'phone' => '']
+            ];
         }
 
-        // --- Populate Step 3 Dependant & Marital Group Profiles ---
-        $familyRelation = $employee->employeeRelations
+        // --- Step 3: Spouse / Parent / Guardian ---
+        $familyRelation = $employee->getRelation('relations')
             ->whereIn('relation_type', ['Spouse', 'Parent', 'Guardian'])
             ->first();
 
         if ($familyRelation) {
-            $this->spouse_name = $familyRelation->name;
-            $this->spouse_dob = $familyRelation->date_of_birth ? \Carbon\Carbon::parse($familyRelation->date_of_birth)->format('Y-m-d') : null;
-            $this->spouse_nic = $familyRelation->nic_number;
+            $this->spouse_name     = $familyRelation->name;
+            $this->spouse_dob      = $familyRelation->date_of_birth ? \Carbon\Carbon::parse($familyRelation->date_of_birth)->format('Y-m-d') : null;
+            $this->spouse_nic      = $familyRelation->nic_number;
             $this->spouse_passport = $familyRelation->passport_number;
         }
 
-        // Map and format children schema maps into localized state arrays
-        $this->children = $employee->employeeRelations->where('relation_type', 'Child')->map(function ($child) {
-            return [
-                'name'           => $child->name,
-                'date_of_birth'  => $child->date_of_birth ? \Carbon\Carbon::parse($child->date_of_birth)->format('Y-m-d') : null,
-                'gender'         => $child->gender,
-                'marital_status' => $child->marital_status ?? 'Single'
-            ];
-        })->toArray();
+        $this->children = $employee->getRelation('relations')
+            ->where('relation_type', 'Child')
+            ->values()
+            ->map(function ($child) {
+                return [
+                    'name'           => $child->name,
+                    'date_of_birth'  => $child->date_of_birth ? \Carbon\Carbon::parse($child->date_of_birth)->format('Y-m-d') : null,
+                    'gender'         => $child->gender,
+                    'marital_status' => $child->marital_status ?? 'Single'
+                ];
+            })->toArray();
 
-        // --- Populate Step 4: Remuneration & Financial Records ---
+        // --- Step 4: Salary & Bank ---
         if ($employee->salaryAndBank) {
-            $this->basic_salary = $employee->salaryAndBank->basic_salary;
-            $this->currency = $employee->salaryAndBank->currency;
-            $this->allowances = $employee->salaryAndBank->allowances;
-            $this->deductions = $employee->salaryAndBank->deductions;
-            $this->bonus = $employee->salaryAndBank->bonus;
-            $this->payment_method = $employee->salaryAndBank->payment_method;
-
-            $this->bank_name = $employee->salaryAndBank->bank_name;
-            $this->searchBank = $employee->salaryAndBank->bank_name;
-            $this->branch_name = $employee->salaryAndBank->branch_name;
-            $this->searchBranch = $employee->salaryAndBank->branch_name;
-
+            $this->basic_salary        = $employee->salaryAndBank->basic_salary;
+            $this->currency            = $employee->salaryAndBank->currency;
+            $this->allowances          = $employee->salaryAndBank->allowances;
+            $this->deductions          = $employee->salaryAndBank->deductions;
+            $this->bonus               = $employee->salaryAndBank->bonus;
+            $this->payment_method      = $employee->salaryAndBank->payment_method;
+            $this->bank_name           = $employee->salaryAndBank->bank_name;
+            $this->searchBank          = $employee->salaryAndBank->bank_name;
+            $this->branch_name         = $employee->salaryAndBank->branch_name;
+            $this->searchBranch        = $employee->salaryAndBank->branch_name;
             $this->account_holder_name = $employee->salaryAndBank->account_holder_name;
-            $this->account_number = $employee->salaryAndBank->account_number;
-            $this->account_type = $employee->salaryAndBank->account_type;
+            $this->account_number      = $employee->salaryAndBank->account_number;
+            $this->account_type        = $employee->salaryAndBank->account_type;
 
             $selectedBankModel = Bank::where('bank_name', $this->bank_name)->first();
             if ($selectedBankModel) {
@@ -367,101 +632,103 @@ class EmployeeManagement extends Component
             }
         }
 
-        // Initialize wizard cursor location and activate view panel
         $this->currentStep = 1;
         $this->isModalOpen = true;
 
-        // 🌟 [වෙනස්කම]: HTML එකට සඥාවක් දෙනවා ඩේටා refresh වුණා කියලා
         $this->dispatch('employee-loaded');
     }
 
-    // ==========================================
-    // --- DATABASE TRANSACTION OPERATIONS ------
-    // ==========================================
-    /**
-     * Validates compiled input parameters and handles records persistence using atomic operations
-     */
+    // ==================================
+    // --- SAVE EMPLOYEE CREATE / UPDATE-
+    // ==================================
+
     public function saveEmployee()
     {
-        // Global form state validation block checking structural rules before executing query definitions
-        $this->validate([
-            'employee_id'               => 'required|unique:employees,employee_id,' . $this->selectedEmployeeId,
-            'first_name'                => 'required|string|max:255',
-            'last_name'                 => 'required|string|max:255',
-            'date_of_birth'             => 'required|date',
-            'gender'                    => 'required',
-            'marital_status'            => 'required',
-            'phone_number'              => 'required',
-            'job_position'              => 'required',
-            'country'                   => 'required',
-            'address_line_1'            => 'required',
-            'city'                      => 'required',
-            'contact_name'              => 'required',
-            'relationship'              => 'required',
-            'emergency_phone'           => 'required',
-            'basic_salary'              => 'required|numeric',
-            'bank_name'                 => 'required|string',
-            'branch_name'               => 'required|string',
-            'children.*.name'           => 'nullable|string',
-            'children.*.date_of_birth'  => 'nullable|date',
-            'email'                     => 'email|unique:users,email,' . ($this->selectedEmployeeId ? Employee::find($this->selectedEmployeeId)->user_id : 'NULL'),
-        ]);
+        $this->validateCurrentStep();
 
-        // Executing safe transactions block to preserve data integrity across normalized tables
-        DB::transaction(function () {
-            // Calculating standard status metrics based on application interface properties
-            $finalStatus = $this->system_access ? 'Active' : ($this->status === 'Active' ? 'Inactive' : $this->status);
+        if ($this->currentStep < $this->totalSteps) {
+            $this->currentStep++;
+            return;
+        }
+
+        $savedSpouseName     = $this->spouse_name ?: session('wizard_spouse_name');
+        $savedSpouseDob      = $this->spouse_dob ?: session('wizard_spouse_dob');
+        $savedSpouseNic      = $this->spouse_nic ?: session('wizard_spouse_nic');
+        $savedSpousePassport = $this->spouse_passport ?: session('wizard_spouse_passport');
+        $savedChildren       = !empty($this->children) ? $this->children : session('wizard_children', []);
+        
+
+        $currentOrgId = Auth::user()->organisation_id ?? null;
+
+        DB::transaction(function () use ($savedSpouseName, $savedSpouseDob, $savedSpouseNic, $savedSpousePassport, $savedChildren, $currentOrgId) {
 
             $userId = null;
 
+            // --- 1. User Account: Create or Update ---
             if ($this->isEditMode) {
-                // 🔄 UPDATE MODE: Sync metadata adjustments back onto the authenticated User structural definition profile
                 $employeeRecord = Employee::findOrFail($this->selectedEmployeeId);
                 $userId = $employeeRecord->user_id;
 
                 if ($userId) {
                     $user = User::find($userId);
                     if ($user) {
-                        $user->update([
+                        $updateData = [
                             'name'  => $this->first_name . ' ' . $this->last_name,
                             'email' => $this->email,
-                        ]);
+                        ];
+
+                        if (!empty($this->password)) {
+                            $updateData['password'] = Hash::make($this->password);
+                        }
+
+                        $user->update($updateData);
+
+                        if (!empty($this->job_position)) {
+                            $user->syncRoles([$this->job_position]);
+                        }
                     }
                 }
             } else {
-                // ✨ CREATE MODE: Automate fresh account authentication provisioning using a standard fallback default credential pattern
-                $defaultPassword = 'password123'; // 👈 Standard default password for application testing configurations
+                $finalPassword = !empty($this->password) ? $this->password : 'password123';
 
                 $user = User::create([
-                    'name'     => $this->first_name . ' ' . $this->last_name,
-                    'email'    => $this->email,
-                    'password' => Hash::make($defaultPassword), // Safe encryption hashing pattern
+                    'name'            => $this->first_name . ' ' . $this->last_name,
+                    'email'           => $this->email,
+                    'password'        => Hash::make($finalPassword),
+                    'organisation_id' => $currentOrgId,
                 ]);
 
                 $userId = $user->id;
-                // Note: Mail server dispatch protocols are explicitly dropped here to speed up sandbox evaluations
+
+                if (!empty($this->job_position)) {
+                    $user->syncRoles([$this->job_position]);
+                }
             }
 
-            // 1. Create or Update Core Employee Profile (Residential address fields are saved directly inside this record)
+            // --- 2. Employee Core Profile: Create or Update ---
             $employee = Employee::updateOrCreate(
                 ['id' => $this->selectedEmployeeId],
                 [
-                    'user_id'         => $userId, // Maps relation link to global platform accounts index
+                    'organization_id' => $currentOrgId,
+                    'user_id'         => $userId,
                     'employee_id'     => $this->employee_id,
+                    'epf_number'      => $this->epf_number,
                     'first_name'      => $this->first_name,
                     'last_name'       => $this->last_name,
                     'date_of_birth'   => $this->date_of_birth,
                     'gender'          => $this->gender,
                     'nic_number'      => $this->nic_number,
                     'passport_number' => $this->passport_number,
+                    'department_id'   => $this->department_id,
+                    'shift_id'        => $this->shift_id,
+                    'employee_category_id' => $this->employee_category_id,
+                    'is_ot_eligible'  => $this->is_ot_eligible,
                     'marital_status'  => $this->marital_status,
                     'phone_number'    => $this->phone_number,
                     'job_position'    => $this->job_position,
-                    'country'         => $this->country,
+                    'work_location'   => $this->work_location,
                     'date_of_join'    => $this->date_of_join,
-                    'status'          => $finalStatus,
-
-                    // Unified Address storage data matrix values
+                    'status'          => $this->status ?: 'Active',
                     'address_line_1'  => $this->address_line_1,
                     'address_line_2'  => $this->address_line_2,
                     'city'            => $this->city,
@@ -469,44 +736,47 @@ class EmployeeManagement extends Component
                 ]
             );
 
-            // 2. Persist Emergency Support Contact Records
-            $employee->emergencyContact()->updateOrCreate(
-                ['employee_id' => $employee->id],
-                [
-                    'contact_name' => $this->contact_name,
-                    'relationship' => $this->relationship,
-                    'phone_number' => $this->emergency_phone,
-                ]
-            );
-
-            // 3. Re-syncing Relational Matrix Groups (Flushing old snapshots to avoid dirty keys tracking)
-            $employee->employeeRelations()->delete();
-
-            // Inserting Spouse context datasets under valid active parameters
-            if ($this->marital_status === 'Married' && !empty($this->spouse_name)) {
-                $employee->employeeRelations()->create([
-                    'relation_type'   => 'Spouse',
-                    'name'            => $this->spouse_name,
-                    'date_of_birth'   => $this->spouse_dob ?: null,
-                    'nic_number'      => $this->spouse_nic,
-                    'passport_number' => $this->spouse_passport,
-                ]);
-            }
-
-            // Processing dynamic children collections via loops
-            foreach ($this->children as $child) {
-                if (!empty($child['name'])) {
-                    $employee->employeeRelations()->create([
-                        'relation_type'  => 'Child',
-                        'name'           => $child['name'],
-                        'date_of_birth'  => $child['date_of_birth'] ?: null,
-                        'gender'         => $child['gender'] ?: null,
-                        'marital_status' => $child['marital_status'] ?: 'Single',
+            // --- 3. Emergency Contacts: Delete & Re-insert ---
+            $employee->emergencyContacts()->delete();
+            foreach ($this->emergency_contacts as $contact) {
+                if (!empty($contact['name']) && !empty($contact['phone'])) {
+                    $employee->emergencyContacts()->create([
+                        'contact_name' => $contact['name'],
+                        'relationship' => $contact['relationship'],
+                        'phone_number' => $contact['phone'],
                     ]);
                 }
             }
 
-            // 4. Build Compensation Mapping Structure Layout Models
+            // --- 4. Family Relations: Delete & Re-insert ---
+            $employee->relations()->delete();
+
+            if (!empty(trim($savedSpouseName))) {
+                $employee->relations()->create([
+                    'relation_type'   => 'Spouse',
+                    'name'            => trim($savedSpouseName),
+                    'date_of_birth'   => $savedSpouseDob ?: null,
+                    'nic_number'      => $savedSpouseNic ?: null,
+                    'passport_number' => $savedSpousePassport ?: null,
+                    'marital_status'  => 'Married'
+                ]);
+            }
+
+            if (!empty($savedChildren)) {
+                foreach ($savedChildren as $child) {
+                    if (!empty($child['name']) && !empty(trim($child['name']))) {
+                        $employee->relations()->create([
+                            'relation_type'  => 'Child',
+                            'name'           => trim($child['name']),
+                            'date_of_birth'  => !empty($child['date_of_birth']) ? \Carbon\Carbon::parse($child['date_of_birth'])->format('Y-m-d') : null,
+                            'gender'         => $child['gender'] ?: 'Male',
+                            'marital_status' => $child['marital_status'] ?: 'Single',
+                        ]);
+                    }
+                }
+            }
+
+            // --- 5. Salary & Bank: Update or Create ---
             $employee->salaryAndBank()->updateOrCreate(
                 ['employee_id' => $employee->id],
                 [
@@ -525,20 +795,17 @@ class EmployeeManagement extends Component
             );
         });
 
-        // Broadcast storage execution alerts onto front-end layer instance
+        session()->forget(['wizard_spouse_name', 'wizard_spouse_dob', 'wizard_spouse_nic', 'wizard_spouse_passport', 'wizard_children']);
         session()->flash('message', $this->isEditMode ? 'Employee updated successfully!' : 'Employee registered successfully!');
 
-        // Clean up session parameters and close working display frames
         $this->closeModal();
         $this->resetForm();
     }
 
     // ==========================================
-    // --- STATE CLEANING & BUFFER FLUSH --------
+    // --- FORM STATE RESET ---------------------
     // ==========================================
-    /**
-     * Purges component cache allocations back to original blank states
-     */
+
     private function resetForm()
     {
         $this->reset([
@@ -553,15 +820,12 @@ class EmployeeManagement extends Component
             'marital_status',
             'phone_number',
             'job_position',
-            'country',
+            'work_location',
             'date_of_join',
             'address_line_1',
             'address_line_2',
             'city',
             'postal_code',
-            'contact_name',
-            'relationship',
-            'emergency_phone',
             'spouse_name',
             'spouse_dob',
             'spouse_nic',
@@ -577,28 +841,43 @@ class EmployeeManagement extends Component
             'isBranchDropdownOpen',
             'banks',
             'branches',
-            'email'
+            'email',
+            'password',
+            'department_id',
+            'selectedDepartmentName',
+            'isDepartmentDropdownOpen',
+            'shift_id',
+            'selectedShiftName',
+            'isShiftDropdownOpen',
+            'is_ot_eligible',
+            'employee_category_id',
+            'selectedCategoryName',
+            'isCategoryDropdownOpen',
         ]);
 
-        // Enforce fallback default system values
         $this->isDropdownOpen = false;
         $this->children = [];
-        $this->status = 'Active';
-        $this->system_access = true;
-        $this->currency = 'LKR';
+        $this->emergency_contacts = [
+            ['name' => '', 'relationship' => '', 'phone' => '']
+        ];
+
+        $this->status         = 'Active';
+        $this->isCategoryOtEnabled = false;
+        $this->system_access  = true;
+        $this->epf_number = null;
+        $this->currency       = 'LKR';
         $this->payment_method = 'Bank Transfer';
-        $this->account_type = 'Savings';
-        $this->allowances = 0;
-        $this->deductions = 0;
-        $this->bonus = 0;
+        $this->account_type   = 'Savings';
+        $this->allowances     = 0;
+        $this->deductions     = 0;
+        $this->bonus          = 0;
+        $this->is_ot_eligible = false;
     }
 
     // ==========================================
-    // --- STEPPER GRAPHICS DEFINITIONS ---------
+    // --- WIZARD STEP CONFIGURATION ------------
     // ==========================================
-    /**
-     * Houses structural labels along with SVG Vector paths for UI execution tracking
-     */
+
     private function getStepsConfiguration()
     {
         return [
@@ -610,58 +889,81 @@ class EmployeeManagement extends Component
     }
 
     // ==========================================
-    // --- COMPONENT RENDER PIPELINE ------------
+    // --- HELPER METHODS FOR RENDER ------------
     // ==========================================
-    /**
-     * Orchestrates master query evaluations and returns live datasets into frontend templates
-     */
-    public function render()
-    {
-        // Extract designatory labels for assignment options list configurations
-        $designations = Designation::orderBy('name', 'asc')->get();
 
-        // Building base Eloquent query tree for structural updates matching
+    private function getDesignations()
+    {
+        return Role::where('name', '!=', 'Super Admin')
+            ->orderBy('name', 'asc')
+            ->get();
+    }
+
+    private function getWorkLocations()
+    {
+        return WorkLocation::orderBy('name', 'asc')->get();
+    }
+
+    private function getFilteredEmployees()
+    {
         $query = Employee::query();
 
-        // Injecting query constraint scopes under non-empty runtime conditions
         if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('first_name', 'like', '%' . $this->search . '%')
-                    ->orWhere('last_name', 'like', '%' . $this->search . '%')
+            $query->where(function ($searchQuery) {
+                $searchQuery->where('first_name',    'like', '%' . $this->search . '%')
+                    ->orWhere('last_name',   'like', '%' . $this->search . '%')
                     ->orWhere('employee_id', 'like', '%' . $this->search . '%')
-                    ->orWhere('nic_number', 'like', '%' . $this->search . '%')
+                    ->orWhere('nic_number',  'like', '%' . $this->search . '%')
                     ->orWhere('phone_number', 'like', '%' . $this->search . '%');
             });
         }
 
-        // Apply dropdown position filters if specified
         if (!empty($this->filterPosition)) {
             $query->where('job_position', $this->filterPosition);
         }
 
-        // Apply active/inactive employee status filters if specified
         if (!empty($this->filterStatus)) {
             $query->where('status', $this->filterStatus);
         }
 
-        // Processing client-side dynamic search parameters inside the current cached banks array
-        $filteredBanks = collect($this->banks)->filter(function ($bank) {
+        return $query->with(['user', 'department', 'shift'])->latest()->paginate(10);
+    }
+
+    private function getFilteredBanksList()
+    {
+        return collect($this->banks)->filter(function ($bank) {
             return empty($this->searchBank) || Str::contains(strtolower($bank['bank_name']), strtolower($this->searchBank));
         })->take(20);
+    }
 
-        // Processing client-side dynamic search parameters inside the current cached branches array
-        $filteredBranches = collect($this->branches)->filter(function ($branch) {
+    private function getFilteredBranchesList()
+    {
+        return collect($this->branches)->filter(function ($branch) {
             return empty($this->searchBranch) || Str::contains(strtolower($branch['branch_name']), strtolower($this->searchBranch));
         })->take(20);
+    }
 
-        // Binding variables map objects and firing component rendering pipeline lifecycle tasks
+    private function getAvailableDepartmentsList()
+    {
+        return Department::orderBy('name', 'asc')->get();
+    }
+
+    // ==========================================
+    // --- RENDER ------------------------------
+    // ==========================================
+
+    public function render()
+    {
         return view('livewire.employee.employee-management', [
-            // 🌟 මෙතනට ->with(['user']) එකතු කළා, එතකොට Email එක කලින්ම ඇදලා ගන්නවා.
-            'employees'        => $query->with(['user'])->latest()->paginate(10),
-            'designations'     => $designations,
-            'filteredBanks'    => $filteredBanks,
-            'filteredBranches' => $filteredBranches,
+            'employees'        => $this->getFilteredEmployees(),
+            'designations'     => $this->getDesignations(),
+            'workLocations'    => $this->getWorkLocations(),
+            'filteredBanks'    => $this->getFilteredBanksList(),
+            'filteredBranches' => $this->getFilteredBranchesList(),
+            'departments'      => $this->getAvailableDepartmentsList(),
+            'shifts'           => Shift::where('is_active', true)->get(),
             'steps'            => $this->getStepsConfiguration(),
+            'categories' => EmployeeCategory::where('is_active', true)->orderBy('name', 'asc')->get(),
         ]);
     }
 }

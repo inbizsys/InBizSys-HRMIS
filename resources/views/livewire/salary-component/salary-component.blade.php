@@ -4,13 +4,15 @@
         {{-- Header --}}
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-xl font-semibold text-gray-800">Salary Components</h1>
-            <button type="button" wire:click="openModal"
-                class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Add Component
-            </button>
+            @can('create salary component')
+                <button type="button" wire:click="openModal"
+                    class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Component
+                </button>
+            @endcan
         </div>
 
         {{-- Tabs --}}
@@ -39,7 +41,10 @@
                         <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Payslip Name
                         </th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Limit</th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode & Limit
+                        </th>
+                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rules &
+                            Frequency</th>
                         <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-xs text-right font-semibold text-gray-500 uppercase tracking-wider">
                             Actions</th>
@@ -59,14 +64,56 @@
                             {{-- Type --}}
                             <td class="px-6 py-4 text-gray-600">{{ $component->name_in_payslip }}</td>
 
-                            {{-- Limit --}}
-                            <td class="px-6 py-4 text-gray-600">
+                            {{-- Limit: displays % for percentage, or currency amount for fixed --}}
+                            <td class="px-6 py-4 text-gray-600 font-medium">
                                 @if ($component->limit)
-                                    <span
-                                        class="text-xs text-gray-400 mr-0.5">{{ $baseCurrency?->code }}</span>{{ number_format($component->limit, 2) }}
+                                    @if ($component->calculation_type === 'percentage')
+                                        <span class="text-purple-700 font-bold">{{ $component->limit }}%</span>
+                                    @else
+                                        <span class="text-xs text-gray-400 mr-0.5">{{ $baseCurrency?->code ?? 'LKR' }}</span>{{ number_format($component->limit, 2) }}
+                                    @endif
                                 @else
-                                    —
+                                    <span class="text-gray-400">—</span>
                                 @endif
+                            </td>
+
+                            {{-- Rules & Frequency Badges --}}
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    {{-- Mode badge --}}
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $component->calculation_type === 'percentage' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-50 text-slate-700 border border-slate-200' }}">
+                                        {{ $component->calculation_type === 'percentage' ? '% of Basic' : 'Fixed Amount' }}
+                                    </span>
+                                    {{-- EPF badge (Only for earnings) --}}
+                                    @if ($component->type === 'earning' && $component->is_epf_applicable)
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"
+                                            title="Subject to EPF/ETF">
+                                            EPF/ETF
+                                        </span>
+                                    @endif
+                                    {{-- Taxable badge --}}
+                                    @if ($component->is_taxable)
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"
+                                            title="Subject to Income Tax (APIT)">
+                                            Taxable
+                                        </span>
+                                    @endif
+                                    {{-- Recurring / One-time badge --}}
+                                    @if ($component->is_recurring)
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Recurring
+                                        </span>
+                                    @else
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                                            One-time
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             {{-- Status --}}
@@ -84,28 +131,35 @@
                                 @endif
                             </td>
 
-                            {{-- Actions --}}
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-end gap-4">
-                                    {{-- Edit --}}
-                                    <button type="button" wire:click="edit({{ $component->id }})"
-                                        class="text-blue-600 hover:text-blue-800 transition-colors" title="Edit">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                    </button>
-
-                                    {{-- Delete (hidden for system records & "Basic") --}}
-                                    @if (!$component->is_system && strtolower($component->name) !== 'basic')
-                                        <button type="button" wire:click="confirmDelete({{ $component->id }})"
-                                            class="text-red-600 hover:text-red-800 transition-colors" title="Delete">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            {{-- Actions (Matching Shift & Policy Settings style) --}}
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <div class="inline-flex items-center space-x-1 justify-end w-full">
+                                    {{-- Edit Button --}}
+                                    @can('edit salary component')
+                                        <button type="button" wire:click="edit({{ $component->id }})"
+                                            title="Edit Component"
+                                            class="px-2 py-1 inline-flex text-xs font-semibold rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                                             </svg>
                                         </button>
+                                    @endcan
+                                    {{-- Delete Button (hidden for system records & "Basic") --}}
+                                    @if (!$component->is_system && strtolower($component->name) !== 'basic')
+                                        @can('delete salary component')
+                                            <span class="text-gray-200 select-none">|</span>
+                                            <button type="button" wire:click="confirmDelete({{ $component->id }})"
+                                                title="Delete Component"
+                                                class="px-2 py-1 inline-flex text-xs font-semibold rounded-lg bg-red-100 text-red-800 hover:bg-red-200 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                    stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                </svg>
+                                            </button>
+                                        @endcan
                                     @endif
                                 </div>
                             </td>
@@ -130,6 +184,7 @@
 
         {{-- ─── Add / Edit Modal ─────────────────────────────────── --}}
         @if ($showModal)
+            @teleport('body')
             <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50"
                 wire:keydown.escape="closeModal">
                 <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
@@ -202,24 +257,77 @@
                             @enderror
                         </div>
 
-                        {{-- Limit --}}
+                        {{-- 1. Calculation Mode --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Limit</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Calculation Mode <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label
+                                    class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition {{ $calculationType === 'fixed' ? 'border-blue-500 bg-blue-50/50 text-blue-900 font-semibold' : 'border-gray-200 hover:bg-gray-50 text-gray-700' }}">
+                                    <input type="radio" value="fixed" wire:model.live="calculationType"
+                                        class="text-blue-600 focus:ring-blue-500">
+                                    <span class="text-xs font-semibold">Fixed Flat Amount</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition {{ $calculationType === 'percentage' ? 'border-blue-500 bg-blue-50/50 text-blue-900 font-semibold' : 'border-gray-200 hover:bg-gray-50 text-gray-700' }}">
+                                    <input type="radio" value="percentage" wire:model.live="calculationType"
+                                        class="text-blue-600 focus:ring-blue-500">
+                                    <span class="text-xs font-semibold">% of Basic Salary</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {{-- 2. Dynamic Limit (depends on calculation mode) --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                {{ $calculationType === 'percentage' ? 'Limit (Max % of Basic)' : 'Limit (Max Amount)' }}
+                            </label>
                             <div
                                 class="flex rounded-lg border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-                                @if ($baseCurrency)
-                                    <span
-                                        class="inline-flex items-center px-3 py-2 bg-gray-100 border-r border-gray-300 text-sm text-gray-500 font-medium select-none whitespace-nowrap">
-                                        {{ $baseCurrency->code }}
-                                    </span>
-                                @endif
-                                <input type="number" wire:model="limit" min="0" step="0.01"
+                                <span
+                                    class="inline-flex items-center px-3 py-2 bg-gray-100 border-r border-gray-300 text-sm text-gray-600 font-bold select-none whitespace-nowrap">
+                                    {{ $calculationType === 'percentage' ? '%' : ($baseCurrency?->code ?? 'LKR') }}
+                                </span>
+                                <input type="number" wire:model="limit" min="0" {{ $calculationType === 'percentage' ? 'max=100' : '' }} step="0.01"
                                     class="flex-1 px-3 py-2 text-sm focus:outline-none border-0"
-                                    placeholder="Optional — leave blank for no limit">
+                                    placeholder="{{ $calculationType === 'percentage' ? 'Optional — e.g. 20 (for max 20%)' : 'Optional — leave blank for no limit' }}">
                             </div>
                             @error('limit')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
+                        </div>
+                        {{-- Policy & Legal Compliance Card (Matching EmployeeCategoryManager style) --}}
+                        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-3">
+                            <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Payroll & Legal Rules
+                            </h4>
+                            {{-- EPF/ETF Checkbox (Visible only for earnings) --}}
+                            @if ($type === 'earning')
+                                <div class="flex items-center gap-2.5">
+                                    <input type="checkbox" id="isEpfApplicable" wire:model="isEpfApplicable"
+                                        class="rounded text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <label for="isEpfApplicable"
+                                        class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                        Eligible for EPF / ETF
+                                    </label>
+                                </div>
+                            @endif
+                            {{-- Taxable Checkbox --}}
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="isTaxable" wire:model="isTaxable"
+                                    class="rounded text-blue-600 focus:ring-blue-500 border-gray-300">
+                                <label for="isTaxable" class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                    Subject to Income Tax
+                                </label>
+                            </div>
+                            {{-- Recurring Checkbox --}}
+                            <div class="flex items-center gap-2.5">
+                                <input type="checkbox" id="isRecurring" wire:model="isRecurring"
+                                    class="rounded text-blue-600 focus:ring-blue-500 border-gray-300">
+                                <label for="isRecurring" class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                    Recurring Monthly
+                                </label>
+                            </div>
                         </div>
 
                         {{-- Mark as Active --}}
@@ -264,10 +372,12 @@
 
                 </div>
             </div>
+            @endteleport
         @endif
 
         {{-- ─── Delete Confirm Modal ──────────────────────────────── --}}
         @if ($confirmDeleteId)
+        @teleport('body')
             <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
                 <div class="bg-white rounded-xl shadow-2xl max-w-lg mx-4 p-6">
                     <h3 class="text-base font-semibold text-gray-800 mb-2">Delete Component?</h3>
@@ -284,6 +394,7 @@
                     </div>
                 </div>
             </div>
+            @endteleport
         @endif
 
     </div>

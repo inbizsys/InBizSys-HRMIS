@@ -35,8 +35,8 @@ class TaxSlab extends Model
     // ──────────────────────────────────────────────
 
     /**
-     * Organisation එකේ Base Currency code එක return කරනවා.
-     * Base currency set කර නැත්නම් fallback විදිහට 'Rs.' return කරනවා.
+     * Returns the base currency code of the organisation.
+     * Fallback to 'Rs.' if base currency is not set.
      */
     protected function getBaseCurrencySymbol(): string
     {
@@ -45,7 +45,7 @@ class TaxSlab extends Model
 
     /**
      * Human-readable range label shown in the table.
-     * Base currency code dynamically ගන්නවා.
+     * Dynamically fetch base currency code.
      * e.g. "Up to LKR 150,000/-"  or  "LKR 150,001/- – LKR 233,333/-"
      */
     public function getRangeLabelAttribute(): string
@@ -68,7 +68,7 @@ class TaxSlab extends Model
 
     /**
      * Human-readable tax label.
-     * Base currency code dynamically ගන්නවා.
+     * Dynamically fetch base currency code.
      * e.g. "6% of monthly regular profits from employment less LKR 9,000/-"
      */
     public function getTaxLabelAttribute(): string

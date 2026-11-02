@@ -9,35 +9,50 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Employee extends Model
 {
-    // 🌟 [UPDATE]: ලිපින විස්තර (address fields) කෙලින්ම සේව් වෙන්න fillable එකට එකතු කළා
     protected $fillable = [
         'employee_id',
+        'organization_id',
+        'user_id',
+        'epf_number',   
         'first_name',
         'last_name',
         'date_of_birth',
         'gender',
+        'department_id',
+        'shift_id',
+        'employee_category_id',
+        'is_ot_eligible',
         'nic_number',
         'passport_number',
         'marital_status',
         'phone_number',
         'job_position',
-        'country',
+        'work_location',
         'date_of_join',
         'status',
-        'address_line_1', // 👈 අලුතින් එක් කළා
-        'address_line_2', // 👈 අලුතින් එක් කළා
-        'city',           // 👈 අලුතින් එක් කළා
-        'postal_code'     // 👈 අලුතින් එක් කළා
+        'address_line_1',
+        'address_line_2',
+        'city',
+        'postal_code'
     ];
 
-    // ❌ පරණ address() relationship එක අයින් කළා (මොකද දැන් වෙනම ටේබල් එකක් නැති නිසා)
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
+    }
+    
+    public function category()
+{
+    return $this->belongsTo(EmployeeCategory::class, 'employee_category_id');
+}
 
     /**
      * Defines a One-to-One relationship with the EmployeeEmergencyContact model.
      */
-    public function emergencyContact(): HasOne
+    public function emergencyContacts(): HasMany
     {
-        return $this->hasOne(EmployeeEmergencyContact::class);
+        return $this->hasMany(EmployeeEmergencyContact::class);
     }
 
     /**
@@ -53,15 +68,8 @@ class Employee extends Model
      */
     public function relations(): HasMany
     {
-        return $this->hasMany(EmployeeRelation::class);
-    }
 
-    /**
-     * Defines a One-to-Many relationship with the EmployeeRelation model explicitly.
-     */
-    public function employeeRelations()
-    {
-        return $this->hasMany(EmployeeRelation::class, 'employee_id');
+        return $this->hasMany(EmployeeRelation::class, 'employee_id', 'id');
     }
 
     /**
@@ -69,7 +77,41 @@ class Employee extends Model
      */
     public function user(): BelongsTo
     {
-        // 🌟 අපි කලින් කතා වුණ විදිහට employees ටේබල් එකට 'user_id' Column එක දැම්මට පස්සේ මේක සුපිරියටම වැඩ කරනවා
+
         return $this->belongsTo(User::class, 'user_id');
     }
+
+
+    /**
+     * Defines a relationship with the OrganisationProfile model.
+     */
+    public function organisationProfile(): BelongsTo
+    {
+        return $this->belongsTo(Organisation::class, 'Organisation_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
+
+    public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        // Links the department foreign key constraint back to the primary key of Department model
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+     public function salaryComponents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EmployeeSalaryComponent::class, 'employee_id');
+    }
+     public function employeeCategory(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeCategory::class, 'employee_category_id');
+    }
+     public function payrolls(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Payroll::class);
+    }
+
 }

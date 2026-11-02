@@ -8,6 +8,9 @@ use App\Models\Department as DepartmentModel;
 use App\Models\Organisation;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
+use App\Models\Employee;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 #[Layout('layouts.app')]
 class Department extends Component
@@ -22,6 +25,7 @@ class Department extends Component
     public string $name = '';
     public $code;
     public $description;
+    public $supervisor_id;
 
     // Delete Confirm State
     public $confirmDeleteId = null;
@@ -34,7 +38,7 @@ class Department extends Component
     public function mount(): void
     {
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy(Auth::user())
             ->tap(function ($activity) {
                 $activity->ip_address = request()->ip();
                 $activity->user_agent = request()->userAgent();
@@ -49,10 +53,12 @@ class Department extends Component
             ? "nullable|string|max:50|unique:departments,code,{$this->editingId},id,organisation_id,{$orgId}"
             : "nullable|string|max:50|unique:departments,code,NULL,id,organisation_id,{$orgId}";
 
+
         return [
             'name'        => 'required|string|max:255',
             'code'        => $codeUnique,
             'description' => 'nullable|string|max:250',
+            'supervisor_id' => 'nullable|exists:employees,id',
         ];
     }
 
@@ -84,6 +90,7 @@ class Department extends Component
         $this->name          = $record->name;
         $this->code          = $record->code;
         $this->description   = $record->description;
+        $this->supervisor_id = $record->supervisor_id;
         $this->showModal     = true;
     }
 
@@ -98,23 +105,32 @@ class Department extends Component
             'name'            => $this->name,
             'code'            => $this->code,
             'description'     => $this->description,
+            'supervisor_id' => $this->supervisor_id ?: null,
         ];
 
         try {
             DB::transaction(function () use ($data) {
 
                 if ($this->editingId) {
-                    DepartmentModel::findOrFail($this->editingId)->update($data);
+                    $department = DepartmentModel::findOrFail($this->editingId);
+                    $department ->update($data);
                     $message = 'Department updated successfully.';
                 } else {
-                    DepartmentModel::create($data);
+                    $department = DepartmentModel::create($data);
                     $message = 'Department added successfully.';
                 }
-                 $this->dispatch('notify', type: 'success', message: $message);
+
+                if ($this->supervisor_id) {
+                    Employee::where('id', $this->supervisor_id)->update([
+                        'department_id' => $department->id
+                    ]);
+                }
+
+                $this->dispatch('notify', type: 'success', message: $message);
             });
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: 'Something went wrong! Department could not be saved.');
-            \Log::error('Department save error: ' . $e->getMessage());
+            Log::error('Department save error: ' . $e->getMessage());
             return;
         }
 
@@ -138,10 +154,9 @@ class Department extends Component
                 });
 
                 $this->confirmDeleteId = null;
-
             } catch (\Exception $e) {
                 $this->dispatch('notify', type: 'error', message: 'Something went wrong! Department could not be deleted.');
-                \Log::error('Department delete error: ' . $e->getMessage());
+                Log::error('Department delete error: ' . $e->getMessage());
             }
         }
     }
@@ -163,6 +178,7 @@ class Department extends Component
         $this->name        = '';
         $this->code        = '';
         $this->description = '';
+        $this->supervisor_id = '';
         $this->resetValidation();
     }
 
@@ -177,8 +193,19 @@ class Department extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $employees = Employee::whereHas('user', function ($queryUser) {
+            $queryUser->whereHas('roles', function ($queryRole) {
+                $queryRole->where('name', 'Supervisor');
+            });
+        })
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->orderBy('users.name', 'asc')
+            ->select('employees.*')
+            ->get();
+
         return view('livewire.organisation.department', [
-            'departmentList' => $departments
+            'departmentList' => $departments,
+            'employeeList'   => $employees
         ]);
     }
 }

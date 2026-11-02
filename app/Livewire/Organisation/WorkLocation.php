@@ -8,6 +8,7 @@ use App\Models\WorkLocation as WorkLocationModel;
 use App\Models\Organisation;
 use Livewire\Attributes\Layout;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 #[Layout('layouts.app')]
@@ -74,14 +75,15 @@ class WorkLocation extends Component
         $this->showModal      = true;
     }
 
-    public function save(): void
+   public function save(): void
     {
         $this->validate();
 
-        $orgId = Organisation::query()->first()?->id;
+        $activeOrganisation = Organisation::query()->first();
+        $organisationId = $activeOrganisation?->id;
 
-        $data = [
-            'organisation_id' => $orgId,
+        $locationPayload = [
+            'organisation_id' => $organisationId,
             'name'            => $this->name,
             'address_line_1'  => $this->address_line_1,
             'address_line_2'  => $this->address_line_2 ?: null,
@@ -91,30 +93,29 @@ class WorkLocation extends Component
         ];
 
         try {
-            DB::transaction(function () use ($data) {
-
-
+            DB::transaction(function () use ($locationPayload) {
                 if ($this->editingId) {
-                    WorkLocationModel::findOrFail($this->editingId)->update($data);
-                    $message = 'Work Location updated successfully.';
+                    WorkLocationModel::findOrFail($this->editingId)->update($locationPayload);
+                    $notificationMessage = 'Work Location updated successfully.';
                 } else {
-                    WorkLocationModel::create($data);
-                    $message = 'Work Location created successfully.';
+                    WorkLocationModel::create($locationPayload);
+                    $notificationMessage = 'Work Location created successfully.';
                 }
-                 $this->dispatch('toast', type: 'success', message: $message);
+
+                $this->dispatch('toast', type: 'success', message: $notificationMessage);
             });
 
             $this->closeModal();
-        } catch (\Exception $e) {
+        } catch (\Exception $caughtException) {
             session()->flash('error', 'Something went wrong! Work Location could not be saved.');
-            \Log::error('Work Location save error: ' . $e->getMessage());
+            Log::error('Work Location save error: ' . $caughtException->getMessage());
             return;
         }
     }
 
-    public function confirmDelete(int $id): void
+    public function confirmDelete(int $selectedId): void
     {
-        $this->confirmDeleteId = $id;
+        $this->confirmDeleteId = $selectedId;
     }
 
     public function delete(): void
@@ -127,14 +128,14 @@ class WorkLocation extends Component
                 });
 
                 $this->confirmDeleteId = null;
-            } catch (\Exception $e) {
-                 $this->dispatch('toast', type: 'error', message: 'Something went wrong! Work Location could not be deleted.');
-                \Log::error('Work Location delete error: ' . $e->getMessage());
+            } catch (\Exception $caughtException) {
+                $this->dispatch('toast', type: 'error', message: 'Something went wrong! Work Location could not be deleted.');
+                Log::error('Work Location delete error: ' . $caughtException->getMessage());
                 return;
             }
-
         }
     }
+
 
     public function cancelDelete(): void
     {

@@ -416,6 +416,7 @@
             </div>
 
             {{-- ═══ Save Button ═══ --}}
+            @can('edit organization profile')
             <div class="p-6 flex justify-end">
                 <button type="button" wire:click="save" wire:loading.attr="disabled"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors disabled:opacity-60 flex items-center gap-2">
@@ -430,6 +431,7 @@
                     <span wire:loading wire:target="save">Saving...</span>
                 </button>
             </div>
+            @endcan
 
         </div>
     </div>

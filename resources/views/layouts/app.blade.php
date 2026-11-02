@@ -12,8 +12,12 @@
         <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     </head>
+
     <body class="font-sans antialiased text-gray-900 bg-gray-50" x-data="{ sidebarOpen: true, isMobile: window.innerWidth < 1024 }" @resize.window="isMobile = window.innerWidth < 1024; if (!isMobile) sidebarOpen = true;">
         <div class="flex h-screen overflow-hidden">
             <!-- Sidebar Overlay for Mobile -->

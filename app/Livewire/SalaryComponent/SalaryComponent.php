@@ -29,6 +29,12 @@ class SalaryComponent extends Component
     public $limit                = null;
     public bool $isActive        = true;
 
+       // --- NEW REAL-WORLD PAYROLL PROPERTIES ---
+    public string $calculationType = 'fixed'; // 'fixed' or 'percentage'
+    public bool $isEpfApplicable   = false;
+    public bool $isTaxable         = true;
+    public bool $isRecurring       = true;
+
     // Delete Confirm State
     public $confirmDeleteId = null;
 
@@ -49,8 +55,14 @@ class SalaryComponent extends Component
             'type'          => 'required|in:earning,deduction',
             'name'          => $nameUnique,
             'nameInPayslip' => 'required|string|max:255',
-            'limit'         => 'nullable|numeric|min:0',
+            'limit'         => $this->calculationType === 'percentage' 
+                ? 'nullable|numeric|min:0|max:100' 
+                : 'nullable|numeric|min:0',
             'isActive'      => 'boolean',
+            'calculationType'  => 'required|in:fixed,percentage',
+            'isEpfApplicable'  => 'boolean',
+            'isTaxable'        => 'boolean',
+            'isRecurring'      => 'boolean',
         ];
     }
 
@@ -90,6 +102,12 @@ class SalaryComponent extends Component
         $this->limit          = $record->limit;
         $this->isActive       = $record->is_active;
         $this->isSystemRecord = $record->is_system;
+
+        $this->calculationType = $record->calculation_type ?? 'fixed';
+        $this->isEpfApplicable = (bool) $record->is_epf_applicable;
+        $this->isTaxable       = (bool) $record->is_taxable;
+        $this->isRecurring     = (bool) $record->is_recurring;
+
         $this->showModal      = true;
     }
 
@@ -104,7 +122,11 @@ class SalaryComponent extends Component
             'type'            => $this->type,
             'name'            => $this->name,
             'name_in_payslip' => $this->nameInPayslip,
+            'calculation_type'  => $this->calculationType,
             'limit'           => $this->limit ?: null,
+            'is_epf_applicable' => $this->type === 'earning' ? $this->isEpfApplicable : false,
+            'is_taxable'        => $this->isTaxable,
+            'is_recurring'      => $this->isRecurring,
             'is_active'       => $this->isActive,
         ];
 
@@ -197,6 +219,10 @@ class SalaryComponent extends Component
         $this->limit          = null;
         $this->isActive       = true;
         $this->isSystemRecord = false;
+        $this->calculationType = 'fixed';
+        $this->isEpfApplicable = false;
+        $this->isTaxable       = true;
+        $this->isRecurring     = true;
         $this->resetValidation();
     }
 
